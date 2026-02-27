@@ -5,6 +5,7 @@ uint8_t blink = 1;
 int main()
 {	
 	delay_timer_init();
+	HAL_DELAY_INIT();
 	GPIO_TypeDef_Init led = {0};
 	
 	led.mode  = GPIO_MODE_OUTPUT_PP;
@@ -13,6 +14,8 @@ int main()
 	led.pin = 13; GPIO_INIT(GPIOC, &led);
 	led.pin = 13; GPIO_INIT(GPIOB, &led);
 	led.pin = 12; GPIO_INIT(GPIOB, &led);
+	//led.pin = 9; GPIO_INIT(GPIOB, &led);
+	//GPIO_WRITE(GPIOB, 9, SET);
 	
 	GPIO_TypeDef_Init button = {0};
 	button.mode = GPIO_MODE_INPUT_PUPD;
@@ -20,7 +23,8 @@ int main()
 	button.interrupt = SET;
 	button.edge = EDGE_FALLING;
 	
-	button.pin = 9; GPIO_INIT(GPIOB, &button);
+	button.pin = 7; GPIO_INIT(GPIOB, &button);
+	button.pin = 6; GPIO_INIT(GPIOB, &button);
 	
 	button.edge = EDGE_RISING_FALLING;
 	button.pin = 8; GPIO_INIT(GPIOB, &button);
@@ -28,39 +32,53 @@ int main()
 	SERIAL_BEGIN();
 	wakeup_handler(); // BUG! - after power cycle, automatically weakes up from standby mode, only for the first time.
 	
-	GPIO_WRITE(GPIOB, 13, SET);
 	
+	PWM_B9();
+	int val = 0;
+	char p = 1;
 	while(1)
 	{
 		printMsg("SWAD\n");
 		GPIO_WRITE(GPIOC, 13, SET);
-		delayMs(200);
+		HAL_DELAY_MS(50);
 
 		GPIO_WRITE(GPIOC, 13, RESET);
-		delayMs(200);
+		HAL_DELAY_MS(50);
 			
 		if(blink == 0)
 		{
 			GPIO_TOGGLE(GPIOB, 12);
 		}
-		
+		val += 20 * p;
+		if (val > 1000)
+		{
+			val = 0;
+		}
+		TIM4->CCR4 = val;
+		//TIM4->EGR = TIM_EGR_UG;
 	}
 }
 
 void EXTI9_5_IRQHandler(void)
 {
-	if (EXTI->PR & (1 << 9))
+	if (EXTI->PR & (1 << 7))
 	{
 		delayMs(10);
-		if (GPIO_READ(GPIOB, 9) == 0) 
+		if (GPIO_READ(GPIOB, 7) == 0) 
 		{
 			GPIO_TOGGLE(GPIOB, 13);
 			
 		}
 		
   	// Clear the interrupt pending bit
-		CLEAR_EXTI_PENDING(9);
-		hal_enter_sleep();
+		CLEAR_EXTI_PENDING(7);
+	}
+	
+	if (EXTI->PR & (1 << 6))
+	{
+  	// Clear the interrupt pending bit
+		CLEAR_EXTI_PENDING(6);
+		hal_enter_standby();
 	}
 	
 	

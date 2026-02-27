@@ -60,7 +60,10 @@ char GPIO_READ(GPIO_TypeDef *port, uint8_t pin);
 void CLEAR_EXTI_PENDING(uint8_t pin);
 
 void delay_timer_init();
+void HAL_DELAY_INIT();
 void delayMs(uint32_t ms);
+void HAL_DELAY_MS(uint32_t ms);
+void HAL_DELAY_US(uint32_t us);
 
 void SERIAL_BEGIN();
 void printMsg(char *msg, ...);
@@ -70,4 +73,7 @@ void hal_enter_stop();
 void hal_enter_sleep();
 void wakeup_handler();
 
+void PWM_B9();
+
 #endif
+

@@ -338,6 +338,11 @@ void delay_timer_init()
 	TIM2->CR1 |= TIM_CR1_CEN;
 }
 
+void HAL_DELAY_INIT()
+{
+	SystemCoreClockUpdate();
+}
+
 void delayMs(uint32_t ms)
 {
 	for(uint32_t i = 0; i < ms; i++)
@@ -347,6 +352,39 @@ void delayMs(uint32_t ms)
 		
 		while(!(TIM2->SR & TIM_SR_UIF));
 	}
+}
+
+void HAL_DELAY_MS(uint32_t ms)
+{
+	uint32_t ticks =(SystemCoreClock / 1000) - 1;
+	
+	SysTick->LOAD = ticks;
+	SysTick->VAL = 0;
+	SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+	
+	for (uint32_t i = 0; i < ms; i++)
+	{
+		while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0);
+	}
+	
+	SysTick->CTRL = 0;
+}
+
+void HAL_DELAY_US(uint32_t us)
+{
+    uint32_t ticks_per_us = SystemCoreClock / 1000000;
+    uint32_t ticks = ticks_per_us - 1;
+
+    SysTick->LOAD = ticks;
+    SysTick->VAL  = 0;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+
+    for (uint32_t i = 0; i < us; i++)
+    {
+        while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0);
+    }
+
+    SysTick->CTRL = 0;
 }
 
 
@@ -417,4 +455,27 @@ void wakeup_handler()
 		PWR->CR |= PWR_CR_CSBF;
 		printMsg("Awaken from power cycle\n");
 	}
+}
+
+void PWM_B9()
+{
+	GPIO_TypeDef_Init pin = {0};
+	pin.mode = AF_MODE_OUTPUT_PP;
+	pin.speed  = GPIO_SPEED_HIGH;
+	pin.pin = 9; GPIO_INIT(GPIOB, &pin);
+	AFIO_CLK_INIT();
+	RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
+	
+	TIM4->CCER |= TIM_CCER_CC4E;
+	TIM4->CR1 |= TIM_CR1_ARPE;
+	TIM4->CCMR2 &= ~TIM_CCMR2_OC4M;
+	TIM4->CCMR2 |= TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4PE; 
+	
+	TIM4->PSC = 72 - 1;
+	TIM4->ARR = 1000;
+	TIM4->CCR4 = 0;
+	
+	TIM4->EGR |= TIM_EGR_UG;
+	TIM4->CR1 |= TIM_CR1_CEN;
+	
 }
